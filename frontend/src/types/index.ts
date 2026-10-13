@@ -1,0 +1,10 @@
+export type Role='EMPLOYEE'|'MANAGER'|'ADMIN';
+export type LeaveStatus='PENDING'|'APPROVED'|'REJECTED'|'CANCELLED';
+export type Employee={id:number;employeeId:string;firstName:string;lastName:string;email:string;jobTitle:string;department:string;role:Role;manager?:{id:number;employeeId:string;name:string;email:string};dateOfJoining:string;active:boolean;createdAt:string};
+export type Leave={id:number;employee:{id:number;employeeId:string;name:string;jobTitle:string;department:string};leaveType:'VACATION'|'SICK'|'PERSONAL'|'OTHER';startDate:string;endDate:string;days:number;reason:string;status:LeaveStatus;managerComment?:string;requestedAt:string;reviewedAt?:string;reviewedBy?:string};
+export type LeaveBalance={id:number;leaveType:'VACATION'|'SICK'|'PERSONAL';totalAllocated:number;used:number;remaining:number;year:number};
+export type CalendarEvent={id:number;employeeId:number;employeeName:string;leaveType:string;startDate:string;endDate:string;status:'PENDING'|'APPROVED'};
+export type Conflict={conflictingEmployees:number;days:{date:string;employees:string[]}[]};
+export type AdminStats={totalEmployees:number;activeEmployees:number;managers:number;pendingLeaveRequests:number;employeesCurrentlyOnLeave:number};
+export type AuditLog={id:number;actorId?:number;actorName:string;action:string;entityType:string;entityId:number;description:string;timestamp:string};
+export type Page<T>={content:T[];totalElements:number;totalPages:number;number:number;size:number};
