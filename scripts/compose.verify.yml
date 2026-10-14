@@ -1,0 +1,36 @@
+# Disposable verification stack; never shares the normal Compose database or ports.
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: verification
+      POSTGRES_USER: verification
+      POSTGRES_PASSWORD: verification-only
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U verification -d verification"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    volumes:
+      - verification_data:/var/lib/postgresql/data
+  backend:
+    image: copartverify-backend:local
+    build: ../backend
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/verification
+      SPRING_DATASOURCE_USERNAME: verification
+      SPRING_DATASOURCE_PASSWORD: verification-only
+      JWT_SECRET: verification-only-signing-secret-at-least-32-characters
+      SPRING_PROFILES_ACTIVE: demo
+      CORS_ALLOWED_ORIGINS: http://localhost:15173,http://127.0.0.1:15173
+    depends_on:
+      db:
+        condition: service_healthy
+    ports: ["127.0.0.1:18080:8080"]
+  frontend:
+    image: copartverify-frontend:local
+    build: ../frontend
+    depends_on: [backend]
+    ports: ["127.0.0.1:15173:80"]
+volumes:
+  verification_data:
