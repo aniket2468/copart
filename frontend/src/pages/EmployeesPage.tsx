@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useMemo, useState, type FormEvent } from "react";
+import { useApiQuery } from "../lib/useApiQuery";
 import { Pencil, Plus, Search, UserCheck, UserX, X } from "lucide-react";
 import { api, fmtDate } from "../lib/api";
 import type { Employee, Role } from "../types";
 import { Toast } from "../components/Toast";
+import { RequestError } from "../components/RequestError";
 const blank = {
   employeeId: "",
   firstName: "",
@@ -16,7 +18,8 @@ const blank = {
   dateOfJoining: new Date().toISOString().slice(0, 10),
 };
 export function EmployeesPage() {
-  const [rows, setRows] = useState<Employee[]>([]);
+  const {data, loading, error: loadError, reload: load} = useApiQuery<Employee[]>("/api/employees");
+  const rows = useMemo(() => data ?? [], [data]);
   const [query, setQuery] = useState("");
   const [department, setDepartment] = useState("");
   const [manager, setManager] = useState("");
@@ -28,10 +31,8 @@ export function EmployeesPage() {
   const [form, setForm] = useState(blank);
   const [error, setError] = useState("");
   const [toast, setToast] = useState("");
-  const load = () => api<Employee[]>("/api/employees").then(setRows);
-  useEffect(() => {
-    load();
-  }, []);
+  const [saving, setSaving] = useState(false);
+  const [busyId, setBusyId] = useState<number | null>(null);
   const shown = useMemo(
     () =>
       rows.filter((e) => {
@@ -66,9 +67,12 @@ export function EmployeesPage() {
   }
   async function save(ev: FormEvent) {
     ev.preventDefault();
+    if (saving) return;
+    setSaving(true);
     setError("");
     const body = {
       ...form,
+      password: form.password || undefined,
       managerId: form.managerId ? Number(form.managerId) : null,
     };
     try {
@@ -81,21 +85,31 @@ export function EmployeesPage() {
       setToast(editing ? "Employee updated" : "Employee added");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Unable to save");
+    } finally {
+      setSaving(false);
     }
   }
   async function toggle(e: Employee) {
+    if (busyId !== null) return;
     if (
       !confirm(
         `${e.active ? "Deactivate" : "Activate"} ${e.firstName} ${e.lastName}?`,
       )
     )
       return;
-    await api(`/api/employees/${e.id}/status`, {
-      method: "PATCH",
-      body: JSON.stringify({ active: !e.active }),
-    });
-    await load();
-    setToast(e.active ? "Employee deactivated" : "Employee activated");
+    setBusyId(e.id);
+    try {
+      await api(`/api/employees/${e.id}/status`, {
+        method: "PATCH",
+        body: JSON.stringify({ active: !e.active }),
+      });
+      await load();
+      setToast(e.active ? "Employee deactivated" : "Employee activated");
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : "Unable to update employee");
+    } finally {
+      setBusyId(null);
+    }
   }
   return (
     <div className="space-y-7">
@@ -112,6 +126,8 @@ export function EmployeesPage() {
           Add employee
         </button>
       </div>
+      {loadError && <RequestError message={loadError} onRetry={load} />}
+      {loading && <p className="text-sm text-slate-500">Loading employees…</p>}
       <section className="card overflow-hidden">
         <div className="grid gap-3 border-b p-4 md:grid-cols-2 xl:grid-cols-5">
           <div className="relative">
@@ -127,7 +143,7 @@ export function EmployeesPage() {
             />
           </div>
           <select className="input" value={department} onChange={(e)=>setDepartment(e.target.value)}><option value="">All departments</option>{[...new Set(rows.map(e=>e.department))].sort().map(x=><option key={x}>{x}</option>)}</select>
-          <select className="input" value={manager} onChange={(e)=>setManager(e.target.value)}><option value="">All managers</option>{rows.filter(e=>e.role==="MANAGER"||e.role==="ADMIN").map(e=><option key={e.id} value={e.id}>{e.firstName} {e.lastName}</option>)}</select>
+          <select className="input" value={manager} onChange={(e)=>setManager(e.target.value)}><option value="">All managers</option>{rows.filter(e=>e.active&&(e.role==="MANAGER"||e.role==="ADMIN")).map(e=><option key={e.id} value={e.id}>{e.firstName} {e.lastName}</option>)}</select>
           <select className="input" value={role} onChange={(e)=>setRole(e.target.value)}><option value="">All roles</option><option>EMPLOYEE</option><option>MANAGER</option><option>ADMIN</option></select>
           <select className="input" value={status} onChange={(e)=>setStatus(e.target.value)}><option value="">All statuses</option><option value="true">Active</option><option value="false">Inactive</option></select>
         </div>
@@ -188,6 +204,7 @@ export function EmployeesPage() {
                   <td className="px-5 py-4">
                     <div className="flex gap-1">
                       <button
+                        disabled={busyId !== null}
                         title="Edit"
                         onClick={() => open(e)}
                         className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"
@@ -195,6 +212,7 @@ export function EmployeesPage() {
                         <Pencil size={16} />
                       </button>
                       <button
+                        disabled={busyId !== null}
                         title={e.active ? "Deactivate" : "Activate"}
                         onClick={() => toggle(e)}
                         className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"
@@ -225,7 +243,7 @@ export function EmployeesPage() {
                   {editing ? "Edit employee" : "Add employee"}
                 </h2>
               </div>
-              <button onClick={() => setEditing(undefined)}>
+              <button disabled={saving} onClick={() => setEditing(undefined)}>
                 <X className="text-slate-400" />
               </button>
             </div>
@@ -281,7 +299,8 @@ export function EmployeesPage() {
                 >
                   <option value="">No manager</option>
                   {rows
-                    .filter((x) => x.id !== editing?.id && x.active)
+                    .filter((x) => x.id !== editing?.id && x.active &&
+                      (x.role === "MANAGER" || x.role === "ADMIN"))
                     .map((x) => (
                       <option key={x.id} value={x.id}>
                         {x.firstName} {x.lastName}
@@ -319,12 +338,13 @@ export function EmployeesPage() {
               <div className="flex justify-end gap-3 pt-3 sm:col-span-2">
                 <button
                   type="button"
+                  disabled={saving}
                   className="btn-secondary"
                   onClick={() => setEditing(undefined)}
                 >
                   Cancel
                 </button>
-                <button className="btn-primary">
+                <button className="btn-primary" disabled={saving}>
                   {editing ? "Save changes" : "Add employee"}
                 </button>
               </div>

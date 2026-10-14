@@ -1,4 +1,6 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useMemo, useState} from 'react';
+import {useApiQuery} from '../lib/useApiQuery';
+import {RequestError} from '../components/RequestError';
 import {CalendarX2, ChevronLeft, ChevronRight, Loader2} from 'lucide-react';
 import {api} from '../lib/api';
 import {useAuth} from '../context/AuthContext';
@@ -13,30 +15,11 @@ export function TeamCalendarPage() {
     const today = new Date();
     return new Date(today.getFullYear(), today.getMonth(), 1);
   });
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const start = iso(new Date(month.getFullYear(), month.getMonth(), 1));
   const end = iso(new Date(month.getFullYear(), month.getMonth() + 1, 0));
 
-  useEffect(() => {
-    let active = true;
-    api<CalendarEvent[]>(`/api/manager/leave-requests/calendar?start=${start}&end=${end}`)
-      .then((data) => {
-        if (active) setEvents(data);
-      })
-      .catch((requestError) => {
-        if (!active) return;
-        setEvents([]);
-        setError(requestError instanceof Error ? requestError.message : 'Unable to load calendar');
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, [start, end]);
+  const {data,loading,error,reload}=useApiQuery<CalendarEvent[]>(`/api/manager/leave-requests/calendar?start=${start}&end=${end}`);
+  const events=data??[];
 
   const cells = useMemo(() => {
     const first = new Date(month.getFullYear(), month.getMonth(), 1);
@@ -48,8 +31,6 @@ export function TeamCalendarPage() {
   }, [month]);
 
   const change = (amount: number) => {
-    setLoading(true);
-    setError('');
     setMonth(new Date(month.getFullYear(), month.getMonth() + amount, 1));
   };
 
@@ -79,9 +60,7 @@ export function TeamCalendarPage() {
         </div>
 
         {error && (
-          <div role="alert" className="border-b border-rose-200 bg-rose-50 px-5 py-3 text-sm text-rose-700">
-            Calendar could not be loaded: {error}
-          </div>
+          <RequestError message={`Calendar could not be loaded: ${error}`} onRetry={reload}/>
         )}
         {!loading && !error && events.length === 0 && (
           <div className="flex items-center justify-center gap-2 border-b bg-slate-50 px-5 py-3 text-sm text-slate-500">
