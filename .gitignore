@@ -5,6 +5,9 @@
 backend/target/
 frontend/node_modules/
 frontend/dist/
+frontend/test-results/
+frontend/playwright-report/
+reports/
 *.tsbuildinfo
 frontend/vite.config.js
 frontend/vite.config.d.ts
