@@ -6,6 +6,7 @@ import java.time.*;
 @Entity @Table(name="leave_requests")
 public class LeaveRequest {
   @Id @GeneratedValue(strategy=GenerationType.IDENTITY) private Long id;
+  @Version private long version;
   @ManyToOne(fetch=FetchType.LAZY,optional=false) private Employee employee;
   @Enumerated(EnumType.STRING) @Column(nullable=false) private LeaveType leaveType;
   @Column(nullable=false) private LocalDate startDate;
@@ -27,4 +28,5 @@ public class LeaveRequest {
   public String getManagerComment(){return managerComment;} public void setManagerComment(String v){managerComment=v;}
   public Instant getRequestedAt(){return requestedAt;} public Instant getReviewedAt(){return reviewedAt;} public void setReviewedAt(Instant v){reviewedAt=v;}
   public Employee getReviewedBy(){return reviewedBy;} public void setReviewedBy(Employee v){reviewedBy=v;}
+  public long getVersion(){return version;}
 }

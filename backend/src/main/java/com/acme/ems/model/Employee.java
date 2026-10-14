@@ -6,6 +6,7 @@ import java.time.*;
 @Entity @Table(name="employees", uniqueConstraints={@UniqueConstraint(columnNames="employee_id"),@UniqueConstraint(columnNames="email")})
 public class Employee {
   @Id @GeneratedValue(strategy=GenerationType.IDENTITY) private Long id;
+  @Version private long version;
   @Column(name="employee_id",nullable=false,unique=true) private String employeeId;
   @Column(nullable=false) private String firstName;
   @Column(nullable=false) private String lastName;
@@ -35,5 +36,6 @@ public class Employee {
   public boolean isActive(){return active;} public void setActive(boolean v){active=v;}
   public Instant getCreatedAt(){return createdAt;} public Instant getUpdatedAt(){return updatedAt;}
   public String fullName(){return firstName+" "+lastName;}
+  public long getVersion(){return version;}
 }
 
