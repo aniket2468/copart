@@ -19,7 +19,8 @@ services:
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-employees}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-employees}
       JWT_SECRET: ${JWT_SECRET:-change-this-local-development-secret-key-to-at-least-32-characters}
-      CORS_ALLOWED_ORIGINS: http://localhost:5173
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:5173}
+      SPRING_PROFILES_ACTIVE: demo
     depends_on:
       db:
         condition: service_healthy
