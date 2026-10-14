@@ -14,5 +14,5 @@ public class EmployeeController{
   @GetMapping("/{id}") @PreAuthorize("hasRole('ADMIN')") EmployeeResponse one(@PathVariable Long id){return service.one(id);}
   @PostMapping @ResponseStatus(HttpStatus.CREATED) @PreAuthorize("hasRole('ADMIN')") EmployeeResponse create(Authentication a,@Valid @RequestBody EmployeeRequest r){return service.create(r,a.getName());}
   @PutMapping("/{id}") @PreAuthorize("hasRole('ADMIN')") EmployeeResponse update(Authentication a,@PathVariable Long id,@Valid @RequestBody EmployeeRequest r){return service.update(id,r,a.getName());}
-  @PatchMapping("/{id}/status") @PreAuthorize("hasRole('ADMIN')") EmployeeResponse status(Authentication a,@PathVariable Long id,@RequestBody StatusRequest r){return service.status(id,r.active(),a.getName());}
+  @PatchMapping("/{id}/status") @PreAuthorize("hasRole('ADMIN')") EmployeeResponse status(Authentication a,@PathVariable Long id,@Valid @RequestBody StatusRequest r){return service.status(id,Boolean.TRUE.equals(r.active()),a.getName());}
 }

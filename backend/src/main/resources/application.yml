@@ -1,8 +1,15 @@
 spring:
+  data:
+    web:
+      pageable:
+        max-page-size: 100
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/employees}
     username: ${SPRING_DATASOURCE_USERNAME:employees}
     password: ${SPRING_DATASOURCE_PASSWORD:employees}
+    hikari:
+      connection-init-sql: "SET lock_timeout = '${DB_LOCK_TIMEOUT_MS:2000}ms'"
+      connection-timeout: ${DB_CONNECTION_TIMEOUT_MS:5000}
   jpa:
     hibernate:
       ddl-auto: validate
@@ -11,12 +18,24 @@ spring:
       hibernate:
         jdbc.time_zone: UTC
   flyway:
-    baseline-on-migrate: true
-    baseline-version: 1
+    baseline-on-migrate: false
   jackson:
+    use-jackson2-defaults: true
     default-property-inclusion: non_null
+    deserialization:
+      fail-on-trailing-tokens: true
+    mapper:
+      allow-coercion-of-scalars: false
 app:
+  business-zone: ${BUSINESS_ZONE:America/Indiana/Indianapolis}
+  leave:
+    max-range-days: ${LEAVE_MAX_RANGE_DAYS:366}
   jwt:
-    secret: ${JWT_SECRET:change-this-local-development-secret-key-to-at-least-32-characters}
+    secret: ${JWT_SECRET}
     expiration-ms: 28800000
   cors-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
+  login:
+    max-failures: ${LOGIN_MAX_FAILURES:5}
+    window-seconds: ${LOGIN_FAILURE_WINDOW_SECONDS:900}
+  request:
+    max-body-bytes: ${MAX_REQUEST_BODY_BYTES:1048576}

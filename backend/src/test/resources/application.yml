@@ -3,14 +3,31 @@ spring:
     url: jdbc:h2:mem:ems;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
     username: sa
     password:
+    hikari:
+      connection-init-sql:
   jpa:
     hibernate:
       ddl-auto: create-drop
   flyway:
     enabled: false
+  jackson:
+    use-jackson2-defaults: true
+    default-property-inclusion: non_null
+    deserialization:
+      fail-on-trailing-tokens: true
+    mapper:
+      allow-coercion-of-scalars: false
 app:
+  business-zone: UTC
+  leave:
+    max-range-days: 366
   jwt:
     secret: a-secure-test-key-that-is-at-least-thirty-two-characters
     expiration-ms: 60000
   cors-origins: http://localhost:5173
+  login:
+    max-failures: 5
+    window-seconds: 900
+  request:
+    max-body-bytes: 1048576
 

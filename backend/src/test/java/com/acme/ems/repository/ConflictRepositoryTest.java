@@ -1,5 +1,5 @@
 package com.acme.ems.repository;
-import com.acme.ems.model.*;import org.junit.jupiter.api.*;import org.springframework.beans.factory.annotation.Autowired;import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;import java.time.*;import java.util.*;import static org.junit.jupiter.api.Assertions.*;
+import com.acme.ems.model.*;import org.junit.jupiter.api.*;import org.springframework.beans.factory.annotation.Autowired;import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;import java.time.*;import java.util.*;import static org.junit.jupiter.api.Assertions.*;
 @DataJpaTest(properties={"spring.flyway.enabled=false","spring.jpa.hibernate.ddl-auto=create-drop"})
 class ConflictRepositoryTest{
  @Autowired EmployeeRepository employees;@Autowired LeaveRequestRepository leaves;Employee manager,requester,teammate,outsider;

@@ -9,7 +9,7 @@ public class ManagerController{
   private final LeaveService service;public ManagerController(LeaveService s){service=s;}
   @GetMapping List<LeaveResponse> requests(Authentication a){return service.forManager(a.getName());}
   @PatchMapping("/{id}/approve") LeaveResponse approve(Authentication a,@PathVariable Long id,@Valid @RequestBody(required=false) ReviewRequest r){return service.review(a.getName(),id,LeaveStatus.APPROVED,r==null?null:r.comment());}
-  @PatchMapping("/{id}/reject") LeaveResponse reject(Authentication a,@PathVariable Long id,@Valid @RequestBody ReviewRequest r){return service.review(a.getName(),id,LeaveStatus.REJECTED,r.comment());}
+  @PatchMapping("/{id}/reject") LeaveResponse reject(Authentication a,@PathVariable Long id,@Valid @RequestBody RejectionRequest r){return service.review(a.getName(),id,LeaveStatus.REJECTED,r.comment());}
   @GetMapping("/{id}/conflicts") ConflictResponse conflicts(Authentication a,@PathVariable Long id){return service.conflicts(a.getName(),id);}
   @GetMapping("/calendar") List<CalendarEvent> calendar(Authentication a,@RequestParam LocalDate start,@RequestParam LocalDate end){return service.calendar(a.getName(),start,end);}
 }

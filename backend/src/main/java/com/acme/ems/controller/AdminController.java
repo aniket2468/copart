@@ -12,7 +12,7 @@ public class AdminController{
   @GetMapping("/employees/{id}") EmployeeResponse one(@PathVariable Long id){return employees.one(id);}
   @PostMapping("/employees") @ResponseStatus(HttpStatus.CREATED) EmployeeResponse create(Authentication a,@Valid @RequestBody EmployeeRequest r){return employees.create(r,a.getName());}
   @PutMapping("/employees/{id}") EmployeeResponse update(Authentication a,@PathVariable Long id,@Valid @RequestBody EmployeeRequest r){return employees.update(id,r,a.getName());}
-  @PatchMapping("/employees/{id}/status") EmployeeResponse status(Authentication a,@PathVariable Long id,@RequestBody StatusRequest r){return employees.status(id,r.active(),a.getName());}
+  @PatchMapping("/employees/{id}/status") EmployeeResponse status(Authentication a,@PathVariable Long id,@Valid @RequestBody StatusRequest r){return employees.status(id,Boolean.TRUE.equals(r.active()),a.getName());}
   @PatchMapping("/employees/{id}/manager") EmployeeResponse manager(Authentication a,@PathVariable Long id,@RequestBody ManagerChangeRequest r){return employees.changeManager(id,r.managerId(),a.getName());}
   @PatchMapping("/employees/{id}/role") EmployeeResponse role(Authentication a,@PathVariable Long id,@Valid @RequestBody RoleChangeRequest r){return employees.changeRole(id,r.role(),a.getName());}
   @GetMapping("/employees/{id}/leave-balances") List<BalanceResponse> balances(@PathVariable Long id){return admin.balances(id);}

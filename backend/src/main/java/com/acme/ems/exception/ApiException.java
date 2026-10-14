@@ -2,7 +2,10 @@ package com.acme.ems.exception;
 import org.springframework.http.HttpStatus;
 public class ApiException extends RuntimeException{
   private final HttpStatus status;
-  public ApiException(HttpStatus status,String message){super(message);this.status=status;}
+  private final String code;
+  public ApiException(HttpStatus status,String message){this(status,"REQUEST_FAILED",message);}
+  public ApiException(HttpStatus status,String code,String message){super(message);this.status=status;this.code=code;}
   public HttpStatus status(){return status;}
+  public String code(){return code;}
 }
 
