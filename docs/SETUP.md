@@ -301,7 +301,8 @@ From the repository root, open the first terminal:
 
 ```bash
 cd backend
-mvn spring-boot:run
+JWT_SECRET='replace-with-a-random-secret-of-at-least-32-characters' \
+SPRING_PROFILES_ACTIVE=demo mvn spring-boot:run
 ```
 
 Leave it running. Open a second terminal at the repository root:
@@ -323,11 +324,13 @@ are:
 - `POSTGRES_DB`: database name
 - `POSTGRES_USER`: database username
 - `POSTGRES_PASSWORD`: database password
-- `JWT_SECRET`: signing secret; use a long random value outside local development
+- `JWT_SECRET`: required signing secret; use a long random value and inject it from a secret store outside local development
+- `SPRING_PROFILES_ACTIVE=demo`: explicitly enables predictable local demo users; never enable it in production
+- `BUSINESS_ZONE`: timezone used for leave-policy dates (defaults to `America/Indiana/Indianapolis`)
 
 For native backend development, equivalent environment variables are
 `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`,
-`SPRING_DATASOURCE_PASSWORD`, `JWT_SECRET`, and `CORS_ALLOWED_ORIGINS`.
+`SPRING_DATASOURCE_PASSWORD`, `JWT_SECRET`, and `CORS_ALLOWED_ORIGINS`. Optional hardening controls include `DB_CONNECTION_TIMEOUT_MS`, `DB_LOCK_TIMEOUT_MS`, `LOGIN_MAX_FAILURES`, `LOGIN_FAILURE_WINDOW_SECONDS`, and `MAX_REQUEST_BODY_BYTES`.
 
 ## Verify the installation
 

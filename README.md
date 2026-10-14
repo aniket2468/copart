@@ -93,7 +93,7 @@ Managers have a monthly Team Calendar showing approved and pending leave for dir
 
 ## Audit trail and admin portal
 
-Important leave, employee, manager, role, status, and balance changes create an `audit_logs` record inside the same backend transaction as the business operation. Records contain the actor, action, entity, timestamp, and a safe human-readable description. There are no update or delete APIs for audit data.
+Important leave, employee, manager, role, status, and balance changes create an `audit_logs` record inside the same backend transaction as the business operation. Records contain the actor, action, entity, timestamp, and a safe human-readable description. PostgreSQL triggers reject audit updates, deletes, and truncation. A production runtime database role must also lack permission to disable those triggers.
 
 The ADMIN-only portal contains organization statistics, employee management, leave-allocation administration, and pageable audit logs with user, action, entity, and date filters. Backend method security protects every `/api/admin/**` route; employees and managers receive HTTP 403 and unauthenticated callers receive HTTP 401.
 
@@ -107,14 +107,14 @@ See the **[complete setup guide](docs/SETUP.md)** for prerequisite installation
 and copy-paste commands for macOS, Windows, Linux, and VS Code.
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/aniket2468/copart.git
 cd copart
 cp .env.example .env
 docker compose up -d --build
 docker compose ps
 ```
 
-Open [http://localhost:5173](http://localhost:5173). The API is also exposed at `http://localhost:8080`. PostgreSQL data is kept in the `postgres_data` volume. Change `JWT_SECRET` outside local development.
+Open [http://localhost:5173](http://localhost:5173). The API is also exposed at `http://localhost:8080`. PostgreSQL data is kept in the `postgres_data` volume. Docker explicitly enables the `demo` profile. Outside demo environments, `JWT_SECRET` is required and demo users are never seeded.
 
 ## Run for development
 
@@ -127,7 +127,8 @@ Create a PostgreSQL database and user named `employees`, or override the `SPRING
 
 ```bash
 cd backend
-mvn spring-boot:run
+JWT_SECRET='replace-with-a-random-secret-of-at-least-32-characters' \
+SPRING_PROFILES_ACTIVE=demo mvn spring-boot:run
 ```
 
 In another terminal:
@@ -142,7 +143,7 @@ Vite proxies `/api` to `localhost:8080`. Set `VITE_API_URL` only when the API is
 
 ## Demo credentials
 
-All demo accounts use the local-development-only password `Welcome123!`.
+All demo accounts use the local-development-only password `Welcome123!`. They exist only when the `demo` Spring profile is enabled and the employee table is empty.
 
 | Persona | Email | Capabilities |
 |---|---|---|
@@ -174,7 +175,7 @@ Authentication uses `Authorization: Bearer <token>` after `POST /api/auth/login`
 - `PATCH /api/admin/employees/{id}/leave-balances/{type}`
 - `GET /api/admin/audit-logs?page=&size=&actorId=&action=&entityType=&from=&to=`
 
-Validation failures return HTTP 400 with field details; authorization failures return 403; missing records return 404; uniqueness or invalid-state conflicts return 409.
+Validation failures return HTTP 400 with field details; authorization failures return 403; missing records return 404; uniqueness or invalid-state conflicts return 409; temporary lock failures return 503. Every error has a stable `code` and `requestId`, and the same request ID is returned in `X-Request-ID`.
 
 ## Testing and builds
 
@@ -187,9 +188,11 @@ Backend tests cover token creation, leave submission, invalid dates, manager app
 
 The expanded suite also covers initial balances, weekend exclusion, transactional deduction, negative-balance prevention, manual adjustment auditing, overlap detection, and ADMIN/MANAGER/EMPLOYEE/unauthenticated access to admin APIs.
 
+For retained PostgreSQL, deployment, browser, and local image-scanning checks, see [scripts/README.md](scripts/README.md). Current results and remaining deployment work are recorded in [CHANGES.md](CHANGES.md).
+
 ## Database migrations
 
-Flyway owns schema evolution. `V1__initial_schema.sql` represents the original employee and leave schema; `V2__leave_balances_and_audit.sql` adds balances, audit logs, constraints, and indexes. Existing local schemas are safely baselined at V1 and migrated forward. Hibernate runs in `validate` mode and no longer mutates production schema automatically.
+Flyway owns schema evolution. `V1__initial_schema.sql` represents the original employee and leave schema; later migrations add balances, audit logs, optimistic versions, constraints, indexes, and append-only audit protection. Automatic baselining is disabled so an unknown nonempty schema fails loudly. Hibernate runs in `validate` mode and does not mutate the schema.
 
 ## Demo workflow
 
@@ -199,14 +202,20 @@ Flyway owns schema evolution. `V1__initial_schema.sql` represents the original e
 4. Sign back in as John to see the reduced Vacation balance.
 5. Sign in as Admin Alex to view metrics, adjust an allocation with a reason, and inspect the resulting audit entries.
 
-## Screenshots
-
-Add deployment-specific screenshots here for the employee balance dashboard, manager Team Calendar, approval conflict warning, and Admin Portal. The responsive UI can be captured directly from `http://localhost:5173` after starting Docker Compose.
-
 ## Security notes
 
 - Passwords are BCrypt-hashed before persistence.
 - JWTs expire after eight hours and Spring Security runs statelessly.
 - CORS origins and secrets are environment-configurable.
+- Login failures are rate limited per application instance, request bodies above 1 MiB are rejected, and database/lock waits have bounded timeouts.
 - DTOs prevent entity internals and password hashes from crossing the API boundary.
-- The demo password and schema auto-update are convenient local defaults; a production deployment should use a secrets manager, Flyway migrations, TLS, and restricted CORS origins.
+- The known demo password is confined to the explicitly enabled `demo` profile.
+- A production deployment must inject `JWT_SECRET`, use TLS, restrict CORS origins, and protect database-owner credentials.
+
+## Leave policy
+
+- Business dates use `BUSINESS_ZONE` (default: `America/Indiana/Indianapolis`), not the host timezone.
+- Working days are Monday through Friday; public holidays are not modeled.
+- Requests cannot start in the past or before the employee's joining date, overlap another pending/approved request, contain only weekends, exceed 366 calendar days, or cross a calendar year.
+- Balance is validated at submission and deducted only on approval from the request start year's balance.
+- Pending requests follow the employee's current manager. Only pending requests may be cancelled, approved, or rejected, and rejection requires a reason.
